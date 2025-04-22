@@ -1,0 +1,412 @@
+==========================================================CI==========================================================
+
+Fuzzy logic==========================================================
+
+#1. UNION
+A = dict()
+B = dict()
+A_union_B = dict()
+
+A = {'a': 0.2, 'b': 0.7, 'c': 0.6, 'd': 0.6}
+B = {'a': 0.4, 'b': 0.3, 'c': 0.8, 'd': 0.6}
+
+print("Fuzzy Set A is: ", A)
+print("Fuzzy Set B is: ", B)
+
+for A_key,B_key in zip(A,B):
+    A_value = A[A_key]
+    B_value = B[B_key]
+
+    A_union_B[A_key] = max(A_value, B_value)
+
+print("Union of A and B is: ", A_union_B)
+
+
+
+#2. INTERSECTION
+A = dict()
+B = dict()
+A_intersect_B = dict()
+
+A = {'a': 0.2, 'b': 0.7, 'c': 0.6, 'd': 0.6}
+B = {'a': 0.4, 'b': 0.3, 'c': 0.8, 'd': 0.6}
+
+print("Fuzzy Set A is: ", A)
+print("Fuzzy Set B is: ", B)
+
+for A_key,B_key in zip(A,B):
+    A_value = A[A_key]
+    B_value = B[B_key]
+
+    A_intersect_B[A_key] = min(A_value, B_value)
+
+print("Intersect of A and B is: ", A_intersect_B)
+
+
+
+#3. COMPLEMENT
+A = dict()
+B = dict()
+A_complement = dict()
+
+A = {'a': 0.2, 'b': 0.7, 'c': 0.6, 'd': 0.6}
+
+print("Fuzzy Set A is: ", A)
+
+for A_key in A:
+    A_value = A[A_key]
+
+    A_complement[A_key] = 1 - A_value
+
+print("Complement of A is: ", A_complement)
+
+
+
+#4. DIFFERENCE
+A = dict()
+B = dict()
+A_difference_B = dict()
+
+A = {'a': 0.2, 'b': 0.3, 'c': 0.6, 'd': 0.6}
+B = {'a': 0.9, 'b': 0.9, 'c': 0.8, 'd': 0.6}
+
+print("Fuzzy Set A is: ", A)
+print("Fuzzy Set B is: ", B)
+
+for A_key,B_key in zip(A,B):
+    A_value = A[A_key]
+    B_value = B[B_key]
+    #B_value = 1 - B_value
+
+    A_difference_B[A_key] = min(A_value,(1-B_value))
+
+print("Difference of A and B is: ", A_difference_B)
+
+
+
+#5. CARTESIAN PRODUCT
+A = dict()
+B = dict()
+A_cartesian_B = dict()
+
+A = {'a': 0.2, 'b': 0.3}
+B = {'c': 0.8, 'd': 0.6}
+
+for A_key in A:
+    A_value = A[A_key]
+    for B_key in B:
+        B_value = B[B_key]
+        A_cartesian_B[(A_key,B_key)] = min(A_value,B_value)
+
+print("Cartesian Product of A and B is: ", A_cartesian_B)
+
+
+
+#6. MAX-MIN COMPOSITION
+def max_min_composition(R, S):
+    result = {}
+    for (x, y1) in R:
+        for (y2, z) in S:
+            if y1 == y2:
+                key = (x, z)
+                value = min(R[(x, y1)], S[(y2, z)])
+                if key in result:
+                    result[key] = max(result[key], value)
+                else:
+                    result[key] = value
+    return result
+
+#Fuzzy relations
+R = {('x1', 'y1'): 0.3, ('x1', 'y2'): 0.7}
+S = {('y1', 'z1'): 0.5, ('y2', 'z1'): 0.8}
+print("\nMax-Min Composition (R ∘ S):", max_min_composition(R, S))
+
+
+
+====================================================================================================================
+Genetic algorithm==========================================================
+
+import numpy as np
+from sklearn.neural_network import MLPRegressor
+from deap import base, creator, tools, algorithms
+
+
+
+#Step 1: Defining Neural Network Model
+def create_nn_model(X_train, y_train):
+    model = MLPRegressor(hidden_layer_sizes=(10, 10), max_iter=1000, random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+
+
+#Step 2: Defining Fitness Function for GA
+def evaluate(individual):
+    inlet_temp, feed_flow, atomization_pressure = individual
+    predicted_output = nn_model.predict([[inlet_temp, feed_flow, atomization_pressure]])
+    fitness = predicted_output[0]
+    return fitness,
+
+
+
+#Step 3: Setting up GA
+creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+creator.create("Individual", list, fitness=creator.FitnessMax)
+
+toolbox = base.Toolbox()
+toolbox.register("attr_float", np.random.uniform, 100, 200)  # Inlet temperature range
+toolbox.register("attr_flow", np.random.uniform, 10, 50)     # Feed flow rate range
+toolbox.register("attr_pressure", np.random.uniform, 1, 5)   # Atomization pressure range
+toolbox.register("individual", tools.initCycle, creator.Individual,
+                 (toolbox.attr_float, toolbox.attr_flow, toolbox.attr_pressure), n=1)
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+toolbox.register("evaluate", evaluate)
+toolbox.register("mate", tools.cxBlend, alpha=0.5)
+toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
+toolbox.register("select", tools.selTournament, tournsize=3)
+
+
+
+#Step 4: Training Sample Data
+X_train = np.array([[150, 30, 3], [160, 35, 4], [170, 40, 2]]) 
+y_train = np.array([0.85, 0.90, 0.80]) 
+nn_model = create_nn_model(X_train, y_train)
+
+
+
+#Step 5: Running Genetic Algorithm
+population = toolbox.population(n=50)
+ngen, cxpb, mutpb = 40, 0.7, 0.2
+algorithms.eaSimple(population, toolbox, cxpb, mutpb, ngen, verbose=True)
+
+
+
+#Step 6: Extracting Best Solution
+best_individual = tools.selBest(population, k=1)[0]
+print("Best Parameters:", best_individual)
+print("Predicted Powder Yield:", evaluate(best_individual)[0])
+
+
+
+====================================================================================================================
+Clonal selection algorithm==========================================================
+
+import numpy as np
+
+
+
+#Step 1: Defining Objective function
+# Example: minimize f(x) = x^2)
+def objective_function(x):
+    return x**2
+
+
+
+#Step 2: Clonal Selection Algorithm
+def clonal_selection_algorithm(population_size, num_clones, mutation_rate, num_generations, search_space):
+    # Initialize population
+    population = np.random.uniform(search_space[0], search_space[1], population_size)
+    
+    for generation in range(num_generations):
+        # Evaluate fitness
+        fitness = np.array([objective_function(x) for x in population])
+        
+        # Select best antibodies
+        sorted_indices = np.argsort(fitness)
+        selected_antibodies = population[sorted_indices[:num_clones]]
+        
+        # Clone and mutate
+        clones = np.repeat(selected_antibodies, num_clones)
+        mutations = np.random.normal(0, mutation_rate, clones.shape)
+        clones = clones + mutations
+        clones = np.clip(clones, search_space[0], search_space[1])  # Ensure clones stay within search space
+        
+        # Replace population
+        population = np.concatenate((clones, np.random.uniform(search_space[0], search_space[1], population_size - num_clones)))
+        
+        # Track best solution
+        best_fitness = np.min(fitness)
+        best_solution = population[np.argmin(fitness)]
+        print(f"Generation {generation + 1}: Best Fitness = {best_fitness}, Best Solution = {best_solution}")
+    
+    return best_solution, best_fitness
+
+
+
+#Step 3 : Setting Parameters
+population_size = 20
+num_clones = 5
+mutation_rate = 0.1
+num_generations = 50
+search_space = (-10, 10)  # Define the search space for x
+
+
+
+#Step 4 : Extracting Best Solution
+best_solution, best_fitness = clonal_selection_algorithm(population_size, num_clones, mutation_rate, num_generations, search_space)
+print("\nFinal Result:")
+print(f"Best Solution: {best_solution}")
+print(f"Best Fitness: {best_fitness}")
+
+
+
+====================================================================================================================
+Artificial immune pattern==========================================================
+
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import random
+
+
+
+# Step 1: Generate synthetic structural data
+def generate_data(samples=200):
+    print("Generating synthetic data...")
+    X = []
+    y = []
+    for _ in range(samples):
+        freq = random.uniform(0.5, 2.0)
+        amp = random.uniform(0.1, 5.0)
+        damage = 1 if freq > 1.2 and amp > 2.5 else 0
+        X.append([freq, amp])
+        y.append(damage)
+    print("Sample data (first 5 rows):")
+    for i in range(5):
+        print(f"Freq: {X[i][0]:.2f}, Amp: {X[i][1]:.2f} -> Label: {y[i]}")
+    return np.array(X), np.array(y)
+
+
+
+# Step 2: Define the AIS Classifier
+class AISClassifier:
+    def __init__(self, num_clones=10, mutation_rate=0.05, num_generations=10):
+        self.num_clones = num_clones
+        self.mutation_rate = mutation_rate
+        self.num_generations = num_generations
+        self.memory_cells = []
+
+    def affinity(self, cell, antigen):
+        return -np.linalg.norm(np.array(cell) - np.array(antigen))
+
+    def mutate(self, cell):
+        return [x + random.uniform(-self.mutation_rate, self.mutation_rate) for x in cell]
+
+    def train(self, X, y):
+        print("\nTraining AIS Classifier...")
+        for gen in range(self.num_generations):
+            print(f"Generation {gen + 1}/{self.num_generations}")
+            for idx, (antigen, label) in enumerate(zip(X, y)):
+                clones = [self.mutate(antigen) for _ in range(self.num_clones)]
+                best_clone = max(clones, key=lambda c: self.affinity(c, antigen))
+                self.memory_cells.append((best_clone, label))
+                if idx < 3:  # show mutation example for first few inputs
+                    print(f"  Antigen {idx}: {antigen}")
+                    print(f"  Best Clone: {best_clone} -> Label: {label}")
+
+    def predict(self, X):
+        print("\nPredicting on test data...")
+        preds = []
+        for i, antigen in enumerate(X):
+            votes = [label for cell, label in self.memory_cells
+                     if self.affinity(cell, antigen) > -0.3]
+            pred = max(set(votes), key=votes.count) if votes else 0
+            preds.append(pred)
+            if i < 5:
+                print(f"  Input: {antigen} -> Predicted: {pred}")
+        return preds
+
+
+
+# Step 3: Run everything
+print("=== STRUCTURE DAMAGE CLASSIFICATION USING AIS ===")
+X, y = generate_data(300)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+print(f"\nSplit data: {len(X_train)} training and {len(X_test)} testing samples.")
+
+classifier = AISClassifier()
+classifier.train(X_train, y_train)
+predictions = classifier.predict(X_test)
+
+
+
+# Step 4: Evaluate accuracy
+accuracy = accuracy_score(y_test, predictions)
+print(f"\nFinal Accuracy: {accuracy * 100:.2f}%")
+
+
+
+====================================================================================================================
+DEAP (Distributed Evolutionary Algorithms)==========================================================
+
+import random
+import numpy as np
+from deap import base, creator, tools, algorithms
+
+
+
+# Problem setup: We'll try to minimize the sphere function (sum of squares)
+def evaluate(individual):
+    return sum(x**2 for x in individual),
+
+
+
+# Create types for fitness and individuals
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+creator.create("Individual", list, fitness=creator.FitnessMin)
+
+
+
+## Initialize toolbox
+toolbox = base.Toolbox()
+
+
+
+# Attribute generator (define genes as floats in [-5, 5])
+toolbox.register("attr_float", random.uniform, -5, 5)
+
+
+
+# Structure initializers
+toolbox.register("individual", tools.initRepeat, creator.Individual, 
+                 toolbox.attr_float, n=10)  # 10-dimensional problem
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+
+
+# Operator registration
+toolbox.register("mate", tools.cxBlend, alpha=0.5)  # Blend crossover
+toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
+toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("evaluate", evaluate)
+
+
+
+def main():
+    # Create population
+    pop = toolbox.population(n=50)
+    
+    # Statistics
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("std", np.std)
+    stats.register("min", np.min)
+    stats.register("max", np.max)
+    
+    # Run algorithm
+    result, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, 
+                                          ngen=50, stats=stats, verbose=True)
+    
+    # Print best individual
+    best_ind = tools.selBest(result, k=1)[0]
+    print(f"\nBest individual is {best_ind}, fitness = {best_ind.fitness.values[0]}")
+    
+    return result, logbook
+
+if __name__ == "__main__":
+    result, logbook = main()
+
+====================================================================================================================
+

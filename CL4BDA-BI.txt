@@ -1,0 +1,362 @@
+==========================================================BDA==========================================================
+
+MongoDB-CRUD==========================================================
+
+// Switch to a new database (or create it if it doesn't exist)
+use mydatabase
+
+
+// Create a collection (or use an existing one)
+db.createCollection("mycollection")
+
+**INSERT**
+// Insert single document
+db.mycollection.insertOne({
+    name: "John Cena",
+    age: 40,
+    city: "New York"
+})
+
+// Insert multiple documents
+db.mycollection.insertMany([
+    { name: "Jane", age: 25, city: "Los Angeles" },
+    { name: "Alex", age: 28, city: "Chicago" },
+    { name: "Shawty", age: 23, city: "New York" }
+])
+
+
+**QUERY**
+// Find all documents in the collection
+db.mycollection.find()
+
+// Find documents with a specific condition (e.g., city = "New York")
+db.mycollection.find({ city: "New York" })
+
+// Find a single document
+db.mycollection.findOne({ name: "Shawty" })
+
+
+**UPDATE**
+// Update a single document (e.g., update age for John Doe)
+db.mycollection.updateOne(
+    { name: "Jane" },
+    { $set: { age: 31 } }
+)
+
+// Update multiple documents (e.g., increment age by 1 for all users in New York)
+db.mycollection.updateMany(
+    { city: "New York" },
+    { $inc: { age: 1 } }
+)
+
+
+**DELETE**
+// Delete a single document
+db.mycollection.deleteOne({ name: "John Cena" })
+
+// Delete multiple documents
+db.mycollection.deleteMany({ city: "Los Angeles" })
+
+
+
+====================================================================================================================
+MapReduce-calculate the frequency==========================================================
+
+#Mapper Function
+def mapper(text):
+    words = text.split()
+    for word in words:
+        yield word.lower(), 1
+
+
+
+#Shuffling and Sorting Function
+def shuffle_and_sort(mapped_results):
+    shuffled_data = {}
+    for word, count in mapped_results:  # Iterate over (word, count) tuples
+        if word in shuffled_data:
+            shuffled_data[word].append(count)
+        else:
+            shuffled_data[word] = [count]
+    # Sort the keys alphabetically
+    sorted_data = sorted(shuffled_data.items())
+    return sorted_data
+
+
+
+#Reducer function
+def reducer(shuffled_data):
+    final_count = {}
+    for word, counts in shuffled_data:
+        final_count[word] = sum(counts)
+    return final_count
+
+
+
+#Sample Text
+if __name__ == "__main__":
+    input_text = """
+    Hello world
+    Hello pune
+    MapReduce is powerful
+    Hello again
+    Bye Bye
+    """
+
+
+
+#Step 1: Split input into lines
+lines = input_text.strip().split("\n")
+
+
+
+#Step 2: Mapping Phase
+mapped_results = []
+for line in lines:
+    mapped_results.extend(mapper(line))
+
+
+
+#Step 3: Shuffling and Sorting    
+shuffled_data = shuffle_and_sort(mapped_results)
+
+
+
+#Step 4: Reduce Phase
+final_word_count = reducer(shuffled_data)
+
+
+
+#Step 5: Output the result
+print("Word Frequency:")
+for word, count in final_word_count.items():
+    print(f"{word}: {count}")
+
+
+
+====================================================================================================================
+MapReduce-Matrix Multiplication==========================================================
+
+#Mapper Function
+def mapper(matrix_A, matrix_B, m, n, p):
+    mapped_results = []
+
+    # Emit key-value pairs for matrix A
+    for i in range(m):
+        for j in range(n):
+            for k in range(p):
+                mapped_results.append(((i, k), ("A", j, matrix_A[i][j])))  # Fixed missing parenthesis
+
+    # Emit key-value pairs for matrix B
+    for j in range(n):
+        for k in range(p):
+            for i in range(m):
+                mapped_results.append(((i, k), ("B", j, matrix_B[j][k])))  # Fixed missing parenthesis
+
+    return mapped_results
+
+
+
+#Shuffling and Sorting Function
+def shuffle_and_sort(mapped_results):
+    shuffled_data = {}
+
+    # Group values by key (i, k)
+    for key, value in mapped_results:
+        if key in shuffled_data:
+            shuffled_data[key].append(value)
+        else:
+            shuffled_data[key] = [value]
+
+    return shuffled_data
+
+
+
+#Reducer function
+def reducer(shuffled_data, n):
+    result_matrix = {}
+
+    # Compute the dot product for each key (i, k)
+    for key, values in shuffled_data.items():
+        i, k = key
+        A = {}
+        B = {}
+
+        # Populate A and B dictionaries
+        for value in values:
+            matrix, j, val = value
+            if matrix == "A":
+                A[j] = val
+            elif matrix == "B":
+                B[j] = val
+
+        # Compute the dot product
+        result = 0
+        for j in range(n):
+            if j in A and j in B:
+                result += A[j] * B[j]
+
+        # Store the result in the result matrix
+        result_matrix[(i, k)] = result
+
+    return result_matrix
+
+
+
+#Sample Matrix
+if __name__ == "__main__":
+    matrix_A = [
+        [1, 2],
+        [3, 4]
+    ]
+    matrix_B = [
+        [5, 6],
+        [7, 8]
+    ]
+
+
+
+#Step 1: Define Dimensions
+m = len(matrix_A)  # Rows in A
+n = len(matrix_A[0])  # Columns in A and rows in B
+p = len(matrix_B[0])  # Columns in B
+
+
+
+#Step 2: Mapping Phase
+mapped_results = mapper(matrix_A, matrix_B, m, n, p)
+
+
+
+#Step 3: Shuffling and Sorting
+shuffled_data = shuffle_and_sort(mapped_results)
+
+
+
+#Step 4: Reduce Phase
+result_matrix = reducer(shuffled_data, n)
+
+
+
+#Step 5: Output the result
+print("Resultant Matrix C:")
+for (i, k), value in result_matrix.items():
+    print(f"C[{i}][{k}] = {value}")
+
+
+
+====================================================================================================================
+MapReduce-grades of students==========================================================
+
+#Importing Data
+import csv
+import pandas as pd
+
+with open('grade.csv', 'r') as file:
+    reader = csv.DictReader(file)
+    original_data = list(reader)
+
+print("Original Dataset:\n")
+print("StudentID\tName\t\tMarks")
+for row in original_data:
+    print(f"{row['StudentID']}\t\t{row['Name']}\t\t{row['Marks']}")
+
+
+
+#Mapper function
+def mapper(data):
+    mapped_data = []
+    for row in data:
+        student_id = row['StudentID']
+        name = row['Name']
+        marks = int(row['Marks'])
+        mapped_data.append((student_id, name, marks))
+    return mapped_data
+
+
+
+#Reducer function
+def reducer(mapped_data):
+    reduced_data = []
+    for student_id, name, marks in mapped_data:
+        if marks >= 90:
+            grade = 'A'
+        elif marks >= 80:
+            grade = 'B'
+        elif marks >= 70:
+            grade = 'C'
+        elif marks >= 60:
+            grade = 'D'
+        else:
+            grade = 'F'
+        reduced_data.append((student_id, name, marks, grade))
+    return reduced_data
+
+
+
+#Output
+mapped = mapper(original_data)
+reduced = reducer(mapped)
+
+print("\nDataset with Grades:\n")
+print("StudentID\tName\t\tMarks\tGrade")
+for student_id, name, marks, grade in reduced:
+    print(f"{student_id}\t\t{name}\t\t{marks}\t{grade}")
+
+
+
+
+==========================================================BI==========================================================
+
+Data classification algorithm==========================================================
+
+# Importing necessary libraries
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Loading the Iris dataset
+iris = load_iris()
+X = iris.data  # Features
+y = iris.target  # Target labels
+
+# Splitting the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+
+
+#1. Decision Tree Classifier
+# Creating and training the Decision Tree classifier
+clf = DecisionTreeClassifier()
+clf.fit(X_train, y_train)
+
+# Making predictions
+y_pred = clf.predict(X_test)
+
+# Evaluating the model
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+
+
+#2. Naive Bayes Classifier
+from sklearn.naive_bayes import GaussianNB
+
+# Naive Bayes Classifier
+nb = GaussianNB()
+nb.fit(X_train, y_train)
+
+# Predict
+y_pred = nb.predict(X_test)
+
+# Evaluate
+print("Naive Bayes Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+
+
+====================================================================================================================
+
